@@ -21,6 +21,7 @@ import {
     hasVP8Support,
     hasVP9Support,
     getMaxWidthSupport,
+    getMaxHeightSupport,
     getH264ProfileSupport,
     getH264LevelSupport,
     getH265ProfileSupport,
@@ -197,7 +198,6 @@ function getCodecProfiles(): Array<CodecProfile> {
 
     CodecProfiles.push(aacConditions);
 
-    const maxWidth: number = getMaxWidthSupport(currentDeviceId);
     const h264Level: number = getH264LevelSupport(currentDeviceId);
     const h264Profile: string = getH264ProfileSupport(currentDeviceId);
 
@@ -223,6 +223,12 @@ function getCodecProfiles(): Array<CodecProfile> {
                 ProfileConditionValue.Width,
                 ProfileConditionType.LessThanEqual,
                 getMaxWidthSupport(currentDeviceId, 'h264').toString(),
+                true
+            ),
+            createProfileCondition(
+                ProfileConditionValue.Height,
+                ProfileConditionType.LessThanEqual,
+                getMaxHeightSupport(currentDeviceId, 'h264').toString(),
                 true
             )
         ],
@@ -255,7 +261,13 @@ function getCodecProfiles(): Array<CodecProfile> {
             createProfileCondition(
                 ProfileConditionValue.Width,
                 ProfileConditionType.LessThanEqual,
-                maxWidth.toString(),
+                getMaxWidthSupport(currentDeviceId, 'h265').toString(),
+                true
+            ),
+            createProfileCondition(
+                ProfileConditionValue.Height,
+                ProfileConditionType.LessThanEqual,
+                getMaxHeightSupport(currentDeviceId, 'h265').toString(),
                 true
             )
         ],
@@ -271,6 +283,12 @@ function getCodecProfiles(): Array<CodecProfile> {
                 ProfileConditionValue.Width,
                 ProfileConditionType.LessThanEqual,
                 getMaxWidthSupport(currentDeviceId).toString(),
+                true
+            ),
+            createProfileCondition(
+                ProfileConditionValue.Height,
+                ProfileConditionType.LessThanEqual,
+                getMaxHeightSupport(currentDeviceId).toString(),
                 true
             )
         ],

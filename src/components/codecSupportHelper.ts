@@ -97,28 +97,63 @@ export function getMaxBitrateSupport(): number {
  * @returns Max supported width.
  */
 export function getMaxWidthSupport(deviceId: number, codec?: string): number {
-    if (codec === 'h264') {
-        // with HLS, it will produce a manifest error if we
-        // send any stream larger than the screen size...
-        return window.innerWidth;
-    }
+    // With HLS, it will produce a manifest error if we send any stream larger
+    // than the screen size.
+    const windowLimit = codec === 'h264' ? window.innerWidth : null;
 
     // mkv playback can use the device limitations.
     // The devices are capable of decoding and downscaling,
     // they just refuse to do it with HLS. This increases
     // the rate of direct playback.
+    let deviceLimit: number = 1280;
     switch (deviceId) {
         case deviceIds.ULTRA:
         case deviceIds.CCGTV:
-            return 3840;
+            deviceLimit = 3840;
         case deviceIds.GEN1AND2:
         case deviceIds.GEN3:
-            return 1920;
+            deviceLimit = 1920;
         case deviceIds.NESTHUBANDMAX:
-            return 1280;
+            deviceLimit = 1280;
     }
 
-    return 0;
+    // Always return the minimum of the window size and device limit.
+    return windowLimit != null
+        ? Math.min(windowLimit, deviceLimit)
+        : deviceLimit;
+}
+
+/**
+ * Get the max supported video width the active Cast device supports.
+ * @param deviceId - Cast device id.
+ * @param codec - Video codec.
+ * @returns Max supported width.
+ */
+export function getMaxHeightSupport(deviceId: number, codec?: string): number {
+    // With HLS, it will produce a manifest error if we send any stream larger
+    // than the screen size.
+    const windowLimit = codec === 'h264' ? window.innerHeight : null;
+
+    // mkv playback can use the device limitations.
+    // The devices are capable of decoding and downscaling,
+    // they just refuse to do it with HLS. This increases
+    // the rate of direct playback.
+    let deviceLimit: number = 800;
+    switch (deviceId) {
+        case deviceIds.ULTRA:
+        case deviceIds.CCGTV:
+            deviceLimit = 2160;
+        case deviceIds.GEN1AND2:
+        case deviceIds.GEN3:
+            deviceLimit = 1080;
+        case deviceIds.NESTHUBANDMAX:
+            deviceLimit = 800;
+    }
+
+    // Always return the minimum of the window size and device limit.
+    return windowLimit != null
+        ? Math.min(windowLimit, deviceLimit)
+        : deviceLimit;
 }
 
 /**
