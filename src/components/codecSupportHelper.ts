@@ -29,8 +29,11 @@ function getCodecString(
     codec: VideoCodec,
     profile?: string,
     level?: number,
-    bitDepth?: number
+    bitDepth?: number,
+    range?: VideoRange
 ): string {
+    range = range ?? VideoRange.SDR;
+
     switch (codec) {
         case VideoCodec.H264: {
             // Default to the oldest baseline profile.
@@ -156,10 +159,58 @@ function getCodecString(
 
             const levelFlag = level.toString().padStart(2, '0');
             const bitDepthFlag = bitDepth.toString().padStart(2, '0');
+            const monochromeFlag = '0';
 
-            // Assume main tier, since the condition language has no way to
-            // express that.
-            return `av01.${profileFlag}.${levelFlag}M.${bitDepthFlag}`;
+            // Assume 4:2:2 subsampling for HDR content. Otherwise, use 4:2:0.
+            const chromeSubsamplingFlag =
+                range !== VideoRange.SDR ? '01' : '00';
+
+            let colorPrimaryFlag;
+            let transferCharacteristicsFlag;
+            let matrixCoefficients;
+            switch (range) {
+                case VideoRange.SDR:
+                case VideoRange.DOVIWithSDR:
+                    colorPrimaryFlag = '01';
+                    transferCharacteristicsFlag = '01';
+                    matrixCoefficients = '01';
+                case VideoRange.HDR10:
+                case VideoRange.HDR10Plus:
+                case VideoRange.DOVI:
+                case VideoRange.DOVIWithHDR10:
+                    // BT.2020; BT.2100.
+                    colorPrimaryFlag = '09';
+                    // SMPTE ST 2084, ITU BT.2100 PQ (12 vs 10 bit).
+                    transferCharacteristicsFlag = '16';
+                    // BT.2020 non-constant luminance, BT.2100 YCbCr
+                    matrixCoefficients = '09';
+                case VideoRange.DOVIWithHLG:
+                case VideoRange.HLG:
+                    // BT.2020; BT.2100.
+                    colorPrimaryFlag = '09';
+                    // BT.2100 HLG, ARIB STD-B67
+                    transferCharacteristicsFlag = '18';
+
+                default:
+                    colorPrimaryFlag = '01';
+                    transferCharacteristicsFlag = '01';
+                    matrixCoefficients = '01';
+            }
+
+            return [
+                'av01',
+                profileFlag,
+
+                // Assume main tier, since the condition language has no way to
+                // express that.
+                `${levelFlag}M`,
+                bitDepthFlag,
+                monochromeFlag,
+                chromeSubsamplingFlag,
+                colorPrimaryFlag,
+                transferCharacteristicsFlag,
+                matrixCoefficients
+            ].join('.');
         }
     }
 }
@@ -189,6 +240,35 @@ export enum VideoCodec {
     VP8 = 'vp8',
     VP9 = 'vp9',
     AV1 = 'av1'
+}
+
+/**
+ * Known video ranges
+ */
+export enum VideoRange {
+    /** SDR video range type (8bit). */
+    SDR,
+
+    /** HDR10 video range type (10bit). */
+    HDR10,
+
+    /** HLG video range type (10bit). */
+    HLG,
+
+    /** Dolby Vision video range type (10bit encoded / 12bit remapped). */
+    DOVI,
+
+    /** Dolby Vision with HDR10 video range fallback (10bit). */
+    DOVIWithHDR10,
+
+    /** Dolby Vision with HLG video range fallback (10bit). */
+    DOVIWithHLG,
+
+    /** Dolby Vision with SDR video range fallback (8bit / 10bit). */
+    DOVIWithSDR,
+
+    /** HDR10+ video range type (10bit to 16bit). */
+    HDR10Plus
 }
 
 /**
@@ -546,6 +626,10 @@ export function getVideoCodecHighestBitDepthSupport(
 
         return castContext.canDisplayType(mimeType, codecString);
     });
+}
+
+export function getVideoRangesSupported(): string[] {
+    return [];
 }
 
 /**
